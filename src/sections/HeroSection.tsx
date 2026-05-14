@@ -21,7 +21,6 @@ class Particle {
   repulseStrength: number;
   alpha: number;
   targetAlpha: number;
-  driftPhase: number;
 
   constructor(ox: number, oy: number, r: number, g: number, b: number, a: number) {
     this.ox = ox;
@@ -35,61 +34,41 @@ class Particle {
     this.b = b;
     this.a = a;
     this.size = 1.2 + Math.random() * 0.8;
-    // Zero-gravity: very low stiffness for slow drift
-    this.stiffness = 0.008 + Math.random() * 0.004;
-    // High damping for continued drift
-    this.damping = 0.91 + Math.random() * 0.03;
-    this.repulseRadius = 90 + Math.random() * 40;
+    /* Same spring as particle_portrait_nehemiah.html */
+    this.stiffness = 0.055 + Math.random() * 0.03;
+    this.damping = 0.82 + Math.random() * 0.04;
+    /* Slightly smaller hover repulsion than original (was ~90–130px) */
+    this.repulseRadius = 72 + Math.random() * 28;
     this.repulseStrength = 6 + Math.random() * 4;
     this.alpha = 0;
     this.targetAlpha = (a / 255) * 0.85;
-    // Random drift phase for variety
-    this.driftPhase = Math.random() * Math.PI * 2;
   }
 
-  update(mx: number, my: number, time: number) {
-    // Spring toward origin — very gentle (zero gravity feel)
+  update(mx: number, my: number) {
     const fx = (this.ox - this.x) * this.stiffness;
     const fy = (this.oy - this.y) * this.stiffness;
 
     this.vx += fx;
     this.vy += fy;
 
-    // Mouse repulsion
     const dx = this.x - mx;
     const dy = this.y - my;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist < this.repulseRadius && mx > 0) {
-      const force = (1 - dist / this.repulseRadius);
+    if (dist < this.repulseRadius) {
+      const force = 1 - dist / this.repulseRadius;
       const angle = Math.atan2(dy, dx);
       this.vx += Math.cos(angle) * force * this.repulseStrength;
       this.vy += Math.sin(angle) * force * this.repulseStrength;
     }
 
-    // Zero-gravity drift — perpetual floating when near target
-    const distToOrigin = Math.sqrt(
-      (this.x - this.ox) ** 2 + (this.y - this.oy) ** 2
-    );
-    if (distToOrigin < 3) {
-      // Apply tiny random drift — like dust in space
-      this.vx += (Math.random() - 0.5) * 0.12;
-      this.vy += (Math.random() - 0.5) * 0.12;
-      // Gentle sine wave drift
-      this.vx += Math.sin(time * 0.5 + this.driftPhase) * 0.03;
-      this.vy += Math.cos(time * 0.7 + this.driftPhase) * 0.03;
-    }
-
-    // Damping — very slow decay for space-like drift
     this.vx *= this.damping;
     this.vy *= this.damping;
 
-    // Position update
     this.x += this.vx;
     this.y += this.vy;
 
-    // Very gradual fade in
     if (this.alpha < this.targetAlpha) {
-      this.alpha = Math.min(this.alpha + 0.008, this.targetAlpha);
+      this.alpha = Math.min(this.alpha + 0.012, this.targetAlpha);
     }
   }
 
@@ -118,38 +97,12 @@ export default function HeroSection() {
   const particlesRef = useRef<Particle[]>([]);
   const mouseRef = useRef({ x: -9999, y: -9999 });
   const rafRef = useRef<number>(0);
-  const timeRef = useRef(0);
   const [particleCount, setParticleCount] = useState(0);
   const [showContent, setShowContent] = useState(false);
-  const [titleText, setTitleText] = useState('');
-  const [subtitleText, setSubtitleText] = useState('');
-
-  const title = 'NEHEMIAH';
-  const subtitle = 'Data Science  //  Machine Learning  //  Visualization';
 
   useEffect(() => {
-    // Typewriter effect for title
-    let charIndex = 0;
-    const titleInterval = setInterval(() => {
-      charIndex++;
-      setTitleText(title.slice(0, charIndex));
-      if (charIndex >= title.length) {
-        clearInterval(titleInterval);
-        // Start subtitle after title
-        let subIndex = 0;
-        const subInterval = setInterval(() => {
-          subIndex++;
-          setSubtitleText(subtitle.slice(0, subIndex));
-          if (subIndex >= subtitle.length) {
-            clearInterval(subInterval);
-          }
-        }, 30);
-      }
-    }, 60);
-
-    setTimeout(() => setShowContent(true), 500);
-
-    return () => clearInterval(titleInterval);
+    const t = setTimeout(() => setShowContent(true), 500);
+    return () => clearTimeout(t);
   }, []);
 
   useEffect(() => {
@@ -191,9 +144,25 @@ export default function HeroSection() {
       mouseRef.current.y = -9999;
     };
 
+    const handleTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      if (touch) {
+        mouseRef.current.x = touch.clientX;
+        mouseRef.current.y = touch.clientY;
+      }
+    };
+
+    const handleTouchEnd = () => {
+      mouseRef.current.x = -9999;
+      mouseRef.current.y = -9999;
+    };
+
     window.addEventListener('resize', handleResize);
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseleave', handleMouseLeave);
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', handleTouchEnd);
 
     // Load and process image
     const img = new Image();
@@ -233,22 +202,20 @@ export default function HeroSection() {
       particlesRef.current = particles;
       setParticleCount(particles.length);
     };
-    img.src = '/nehemiah-portrait.png';
+    img.src = '/portrait.png';
 
-    // Animation loop
+    // Animation loop (aligned with particle_portrait_nehemiah.html)
     const animate = () => {
-      // Trail effect for smooth look
+      ctx.clearRect(0, 0, W, H);
       ctx.fillStyle = 'rgba(4,8,16,0.18)';
       ctx.fillRect(0, 0, W, H);
-
-      timeRef.current += 0.016;
 
       const particles = particlesRef.current;
       const mx = mouseRef.current.x;
       const my = mouseRef.current.y;
 
       for (let i = 0; i < particles.length; i++) {
-        particles[i].update(mx, my, timeRef.current);
+        particles[i].update(mx, my);
         particles[i].draw(ctx);
       }
 
@@ -261,6 +228,8 @@ export default function HeroSection() {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseleave', handleMouseLeave);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
       cancelAnimationFrame(rafRef.current);
     };
   }, []);
@@ -309,14 +278,12 @@ export default function HeroSection() {
               lineHeight: 1.05,
               letterSpacing: '-0.02em',
               color: '#e8edf5',
+              marginTop: 10,
             }}
           >
-            {titleText}
-            {titleText.length < title.length && (
-              <span className="boot-cursor" style={{ color: '#00ffcc' }}>
-                _
-              </span>
-            )}
+            Nehemiah
+            <br />
+            <span style={{ color: 'rgba(0, 255, 200, 0.85)' }}>Datasci.</span>
           </h1>
           <p
             className="mt-3 uppercase"
@@ -325,14 +292,10 @@ export default function HeroSection() {
               letterSpacing: '0.18em',
               color: 'rgba(232,237,245,0.4)',
               fontFamily: 'var(--font-mono)',
+              marginTop: 12,
             }}
           >
-            {subtitleText}
-            {subtitleText.length < subtitle.length && titleText.length >= title.length && (
-              <span className="boot-cursor" style={{ color: '#00ffcc' }}>
-                _
-              </span>
-            )}
+            Data Science · Machine Learning · Visualization
           </p>
         </div>
 
@@ -373,11 +336,19 @@ export default function HeroSection() {
               textTransform: 'uppercase',
             }}
           >
-            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="link-hover">
+            <a
+              href="https://github.com/ne-he/kimul"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="link-hover"
+            >
               GitHub
             </a>
             <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="link-hover">
               LinkedIn
+            </a>
+            <a href="#projects" className="link-hover">
+              Projects
             </a>
           </div>
         </div>
@@ -399,20 +370,6 @@ export default function HeroSection() {
         <span className="pulse-hint">Move cursor to scatter particles</span>
       </div>
 
-      {/* Version badge */}
-      <div
-        className={`absolute bottom-6 left-6 z-10 transition-opacity duration-1000 pointer-events-none ${
-          showContent ? 'opacity-100' : 'opacity-0'
-        }`}
-        style={{
-          fontSize: 9,
-          letterSpacing: '0.15em',
-          color: 'rgba(0, 255, 204, 0.25)',
-          fontFamily: 'var(--font-mono)',
-        }}
-      >
-        v21.04.2026 — build #847
-      </div>
     </section>
   );
 }

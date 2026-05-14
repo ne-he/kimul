@@ -25,14 +25,14 @@ export default function CustomCursor() {
     };
 
     const handleMouseEnterLink = () => {
-      ring.style.width = '48px';
-      ring.style.height = '48px';
+      ring.style.width = '42px';
+      ring.style.height = '42px';
       ring.style.borderColor = 'rgba(0, 255, 204, 0.6)';
     };
 
     const handleMouseLeaveLink = () => {
-      ring.style.width = '36px';
-      ring.style.height = '36px';
+      ring.style.width = '30px';
+      ring.style.height = '30px';
       ring.style.borderColor = 'rgba(0, 255, 204, 0.35)';
     };
 
@@ -91,8 +91,8 @@ export default function CustomCursor() {
         ref={ringRef}
         className="fixed pointer-events-none z-[99]"
         style={{
-          width: 36,
-          height: 36,
+          width: 30,
+          height: 30,
           borderRadius: '50%',
           border: '1px solid rgba(0, 255, 204, 0.35)',
           transform: 'translate(-50%, -50%)',
