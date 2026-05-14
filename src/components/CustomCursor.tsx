@@ -14,14 +14,15 @@ export default function CustomCursor() {
 
     let mouseX = -100;
     let mouseY = -100;
-    let ringX = -100;
-    let ringY = -100;
 
     const handleMouseMove = (e: MouseEvent) => {
       mouseX = e.clientX;
       mouseY = e.clientY;
       dot.style.left = `${mouseX}px`;
       dot.style.top = `${mouseY}px`;
+      /* Ring follows pointer immediately — lag was only intended for particle spring-back, not UI */
+      ring.style.left = `${mouseX}px`;
+      ring.style.top = `${mouseY}px`;
     };
 
     const handleMouseEnterLink = () => {
@@ -36,24 +37,13 @@ export default function CustomCursor() {
       ring.style.borderColor = 'rgba(0, 255, 204, 0.35)';
     };
 
-    const animateRing = () => {
-      ringX += (mouseX - ringX) * 0.12;
-      ringY += (mouseY - ringY) * 0.12;
-      ring.style.left = `${ringX}px`;
-      ring.style.top = `${ringY}px`;
-      requestAnimationFrame(animateRing);
-    };
-
     window.addEventListener('mousemove', handleMouseMove);
 
-    // Link hover detection
     const links = document.querySelectorAll('a, button, [role="button"]');
     links.forEach((link) => {
       link.addEventListener('mouseenter', handleMouseEnterLink);
       link.addEventListener('mouseleave', handleMouseLeaveLink);
     });
-
-    const raf = requestAnimationFrame(animateRing);
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
@@ -61,7 +51,6 @@ export default function CustomCursor() {
         link.removeEventListener('mouseenter', handleMouseEnterLink);
         link.removeEventListener('mouseleave', handleMouseLeaveLink);
       });
-      cancelAnimationFrame(raf);
     };
   }, []);
 

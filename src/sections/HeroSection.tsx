@@ -169,9 +169,10 @@ export default function HeroSection() {
     img.crossOrigin = 'anonymous';
     img.onload = () => {
       const oc = document.createElement('canvas');
+      /* Larger on-screen portrait: use more of viewport (was 0.38 × 0.82) */
       const scale = Math.min(
         1,
-        Math.min((W * 0.38) / img.width, (H * 0.82) / img.height)
+        Math.min((W * 0.52) / img.width, (H * 0.9) / img.height)
       );
       oc.width = Math.round(img.width * scale);
       oc.height = Math.round(img.height * scale);
